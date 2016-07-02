@@ -4,6 +4,9 @@ csxlock - simple X screen locker with customized color
 Simple screen locker utility for X, fork of sxlock which is based on sflock, which is based on slock.
 Warning: suid needed to lock console! SUID can be disabled (tty locking will not be working).
 
+Thanks to Jakub Klinkovský for pure code!
+
+
 Features
 --------
 

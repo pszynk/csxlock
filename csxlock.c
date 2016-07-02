@@ -41,10 +41,12 @@
 #include <X11/extensions/dpms.h>
 #include <X11/extensions/Xrandr.h>
 #include <security/pam_appl.h>
+
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <linux/vt.h>
+#include <time.h>
 
 #ifdef __GNUC__
     #define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
@@ -164,6 +166,11 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
     Bool sleepmode = False;
     Bool failed = False;
 
+    char datetime[] = "YYYY-MM-DD HH:MM";
+    int datelen=strlen(datetime);
+    char *format = "%Y-%m-%d %H:%M";
+    time_t t = time(0);
+
     XSync(dpy, False);
 
     /* define base coordinates - middle of screen */
@@ -210,15 +217,24 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
             }
         }
 
-        if (event.type == MotionNotify) {
+        /* draw date and time*/
+        if (event.type == MotionNotify || event.type == KeyPress) {
             sleepmode = False;
             failed = False;
+
+            /* get time */
+            t = time(NULL);
+            memset(datetime, 0, datelen);
+            strftime(datetime, datelen+1, format, localtime(&t));
+            /* write text */
+            int height = ascent + descent;
+            int width = XTextWidth(font, datetime, strlen(datetime));
+            int x = base_x - width / 2;
+            XClearArea(dpy, w, x, base_y - 20 - (height*2), width, height, False);
+            XDrawString(dpy, w, gc, x, base_y - 20 - height, datetime, strlen(datetime));
         }
 
         if (event.type == KeyPress) {
-            sleepmode = False;
-            failed = False;
-
             char inputChar = 0;
             XLookupString(&event.xkey, &inputChar, sizeof(inputChar), &ksym, 0);
 

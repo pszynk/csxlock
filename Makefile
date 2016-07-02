@@ -1,11 +1,13 @@
-# sxlock - simple X screen locker
-# © 2013-2014 Jakub Klinkovský
+# ccsxlock - simple colored X screen locker
+# © 2016 Safronov Kirill
+# Based on csxlock
+# © 2013-2016 Jakub Klinkovský
 # Based on sflock
 # © 2010-2011 Ben Ruijl
 # Based on slock
 # © 2006-2008 Anselm R. Garbe, Sander van Dijk
 
-NAME = sxlock
+NAME = csxlock
 VERSION = 1.0
 
 CC := $(CC) -std=c99
@@ -21,13 +23,17 @@ CPPFLAGS += -DPROGNAME=\"${NAME}\" -DVERSION=\"${VERSION}\" -D_XOPEN_SOURCE=500
 CFLAGS := $(base_CFLAGS) $(pkgs_CFLAGS) $(CFLAGS)
 LDLIBS := $(base_LIBS) $(pkgs_LIBS)
 
-all: sxlock
+all: csxlock
 
-sxlock: sxlock.c
+csxlock: csxlock.c
 
 clean:
-	$(RM) sxlock
+	$(RM) csxlock
 
-install: sxlock
-	install -Dm755 sxlock $(DESTDIR)/usr/bin/sxlock
-	install -Dm644 sxlock.pam $(DESTDIR)/etc/pam.d/sxlock
+install: csxlock
+	install -Dm4755 csxlock $(DESTDIR)/usr/bin/csxlock
+	install -Dm644 csxlock.pam $(DESTDIR)/etc/pam.d/csxlock
+
+remove:
+	rm -f $(DESTDIR)/usr/bin/csxlock
+	rm -f $(DESTDIR)/etc/pam.d/csxlock

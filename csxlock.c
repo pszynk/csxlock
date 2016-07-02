@@ -71,6 +71,9 @@ static int conv_callback(int num_msgs, const struct pam_message **msg, struct pa
 static char* opt_font;
 static char* opt_username;
 static char* opt_passchar;
+static char* opt_background = "#C3BfB0";
+static char* opt_foreground = "#423638";
+static char* opt_wrong = "#F80009";
 
 /* need globals for signal handling */
 Display *dpy;
@@ -152,7 +155,7 @@ handle_signal(int sig) {
 }
 
 void
-main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(black), XColor white, XColor red) {
+main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor foreground, XColor wrong) {
     XEvent event;
     KeySym ksym;
 
@@ -198,9 +201,9 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
             /* draw new passdisp or 'auth failed' */
             if (failed) {
                 x = base_x - XTextWidth(font, "authentication failed", 21) / 2;
-                XSetForeground(dpy, gc, red.pixel);
+                XSetForeground(dpy, gc, wrong.pixel);
                 XDrawString(dpy, w, gc, x, base_y + ascent + 20, "authentication failed", 21);
-                XSetForeground(dpy, gc, white.pixel);
+                XSetForeground(dpy, gc, foreground.pixel);
             } else {
                 x = base_x - XTextWidth(font, passdisp, len) / 2;
                 XDrawString(dpy, w, gc, x, base_y + ascent + 20, passdisp, len);
@@ -259,11 +262,14 @@ parse_options(int argc, char** argv)
         { "passchar",       required_argument, 0, 'p' },
         { "username",       required_argument, 0, 'u' },
         { "version",        no_argument,       0, 'v' },
+        { "background",        no_argument,       0, 'b' },
+        { "foreground",        no_argument,       0, 'o' },
+        { "wrong",        no_argument,       0, 'w' },
         { 0, 0, 0, 0 },
     };
 
     for (;;) {
-        int opt = getopt_long(argc, argv, "f:hp:u:v", opts, NULL);
+        int opt = getopt_long(argc, argv, "f:hp:u:vb:o:w:", opts, NULL);
         if (opt == -1)
             break;
 
@@ -272,7 +278,7 @@ parse_options(int argc, char** argv)
                 opt_font = optarg;
                 break;
             case 'h':
-                die("usage: "PROGNAME" [-hv] [-p passchars] [-f fontname] [-u username]\n");
+                die("usage: "PROGNAME" [-hv] [-p passchars] [-f fontname] [-u username] [-b hexcolor] [-o hexcolor] [-w hexcolor]\n");
                 break;
             case 'p':
                 opt_passchar = optarg;
@@ -282,6 +288,15 @@ parse_options(int argc, char** argv)
                 break;
             case 'v':
                 die(PROGNAME"-"VERSION", © 2013 Jakub Klinkovský\n");
+                break;
+            case 'b':
+                opt_background = optarg;
+                break;
+            case 'o':
+                opt_foreground = optarg;
+                break;
+            case 'w':
+                opt_wrong = optarg;
                 break;
             default:
                 return False;
@@ -299,7 +314,7 @@ main(int argc, char** argv) {
 
     Cursor invisible;
     Window root, w;
-    XColor black, red, white;
+    XColor background, foreground, wrong;
     XFontStruct* font;
     GC gc;
 
@@ -388,16 +403,32 @@ main(int argc, char** argv) {
     {
         XColor dummy;
         Colormap cmap = DefaultColormap(dpy, screen_num);
-        XAllocNamedColor(dpy, cmap, "orange red", &red, &dummy);
-        XAllocNamedColor(dpy, cmap, "black", &black, &dummy);
-        XAllocNamedColor(dpy, cmap, "white", &white, &dummy);
+        /* background */
+        if(!XParseColor(dpy, cmap, opt_background, &background)){
+            fprintf(stderr, "error Can not parse background color: %s\n", opt_background);
+            XAllocNamedColor(dpy, cmap, "black", &background, &dummy);
+        }else
+            XAllocColor(dpy, cmap, &background);
+        /* foreground */
+        if(!XParseColor(dpy, cmap, opt_foreground, &foreground)){
+            fprintf(stderr, "error Can not parse foreground color: %s\n", opt_foreground);
+            XAllocNamedColor(dpy, cmap, "white", &foreground, &dummy);
+        }else
+            XAllocColor(dpy, cmap, &foreground);
+        /* wrong */
+        if(!XParseColor(dpy, cmap, opt_wrong, &wrong)){
+            fprintf(stderr, "error Can not parse foreground color for wrong autetification: %s\n", opt_wrong);
+            XAllocNamedColor(dpy, cmap, "orange red", &wrong, &dummy);
+        }else
+            XAllocColor(dpy, cmap, &wrong);
+
     }
 
     /* create window */
     {
         XSetWindowAttributes wa;
         wa.override_redirect = 1;
-        wa.background_pixel = black.pixel;
+        wa.background_pixel = background.pixel;
         w = XCreateWindow(dpy, root, 0, 0, info.display_width, info.display_height,
                 0, DefaultDepth(dpy, screen_num), CopyFromParent,
                 DefaultVisual(dpy, screen_num), CWOverrideRedirect | CWBackPixel, &wa);
@@ -408,7 +439,7 @@ main(int argc, char** argv) {
     {
         char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
         Pixmap pmap = XCreateBitmapFromData(dpy, w, curs, 8, 8);
-        invisible = XCreatePixmapCursor(dpy, pmap, pmap, &black, &black, 0, 0);
+        invisible = XCreatePixmapCursor(dpy, pmap, pmap, &background, &background, 0, 0);
         XDefineCursor(dpy, w, invisible);
         XFreePixmap(dpy, pmap);
     }
@@ -418,7 +449,7 @@ main(int argc, char** argv) {
         XGCValues values;
         gc = XCreateGC(dpy, w, (unsigned long)0, &values);
         XSetFont(dpy, gc, font->fid);
-        XSetForeground(dpy, gc, white.pixel);
+        XSetForeground(dpy, gc, foreground.pixel);
     }
 
     /* grab pointer and keyboard */
@@ -467,21 +498,24 @@ main(int argc, char** argv) {
     /* disable tty switching */
     int term;
     if ((term = open("/dev/console", O_RDWR)) == -1) {
-        perror("error opening console");
+        fprintf(stderr, "error opening console\n");
     }
-    if ((ioctl(term, VT_LOCKSWITCH)) == -1) {
-        perror("error locking console");
+    int ioterm = ioctl(term, VT_LOCKSWITCH);
+    if (ioterm == -1) {
+        fprintf(stderr, "error locking console\n");
     }
 
 
     /* run main loop */
-    main_loop(w, gc, font, &info, passdisp, opt_username, black, white, red);
+    main_loop(w, gc, font, &info, passdisp, opt_username, background, foreground, wrong);
 
     /* enable tty switching */
-    if ((ioctl(term, VT_UNLOCKSWITCH)) == -1) {
-        perror("error unlocking console");
-    }
-    close(term);
+    if (ioterm >= 0)
+        if ((ioctl(term, VT_UNLOCKSWITCH)) == -1) {
+            fprintf(stderr, "error unlocking console\n");
+        }
+    if(term >= 0)
+        close(term);
 
     /* restore dpms settings */
     if (using_dpms) {

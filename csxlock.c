@@ -41,6 +41,10 @@
 #include <X11/extensions/dpms.h>
 #include <X11/extensions/Xrandr.h>
 #include <security/pam_appl.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <linux/vt.h>
 
 #ifdef __GNUC__
     #define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
@@ -460,8 +464,24 @@ main(int argc, char** argv) {
         DPMSEnable(dpy);
     }
 
+    /* disable tty switching */
+    int term;
+    if ((term = open("/dev/console", O_RDWR)) == -1) {
+        perror("error opening console");
+    }
+    if ((ioctl(term, VT_LOCKSWITCH)) == -1) {
+        perror("error locking console");
+    }
+
+
     /* run main loop */
     main_loop(w, gc, font, &info, passdisp, opt_username, black, white, red);
+
+    /* enable tty switching */
+    if ((ioctl(term, VT_UNLOCKSWITCH)) == -1) {
+        perror("error unlocking console");
+    }
+    close(term);
 
     /* restore dpms settings */
     if (using_dpms) {

@@ -1,9 +1,8 @@
-sxlock - simple X screen locker
+csxlock - simple X screen locker with customized color
 ===============================
 
-Simple screen locker utility for X, fork of sflock, which is based on slock. Main difference is that
-sxlock uses PAM authentication, so no suid is needed.
-
+Simple screen locker utility for X, fork of sxlock which is based on sflock, which is based on slock.
+Warning: suid needed to lock console! SUID can be disabled (tty locking will not be working).
 
 Features
 --------
@@ -26,7 +25,7 @@ Requirements
 Installation
 ------------
 
-Arch Linux users can install this package from the [AUR](https://aur.archlinux.org/packages/sxlock-git/).
+AUR package will be soon
 
 For manual installation just install dependencies, checkout and make:
 
@@ -36,10 +35,10 @@ For manual installation just install dependencies, checkout and make:
     ./sxlock
 
 
-Running sxlock
+Running csxlock
 -------------
 
-Simply invoking the sxlock command starts the display locker with default settings.
+Simply invoking the csxlock command starts the display locker with default settings.
 
 Custom settings:
 
@@ -54,7 +53,7 @@ When using [systemd](http://freedesktop.org/wiki/Software/systemd/), you can use
 
 ```ini
 [Unit]
-Description=Lock X session using sxlock
+Description=Lock X session using csxlock
 
 [Service]
 User=<username>

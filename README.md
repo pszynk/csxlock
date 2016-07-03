@@ -78,7 +78,7 @@ Font:
 Hooking into systemd events
 ---------------------------
 
-When using [systemd](http://freedesktop.org/wiki/Software/systemd/), you can use the following service (create `/etc/systemd/system/sxlock.service`) to let the system lock your X session on hibernation or suspend:
+When using [systemd](http://freedesktop.org/wiki/Software/systemd/), you can use the following service (create `/etc/systemd/system/csxlock.service`) to let the system lock your X session on hibernation or suspend:
 
 ```ini
 [Unit]

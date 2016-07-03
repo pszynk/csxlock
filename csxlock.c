@@ -73,9 +73,9 @@ static int conv_callback(int num_msgs, const struct pam_message **msg, struct pa
 static char* opt_font;
 static char* opt_username;
 static char* opt_passchar;
-static char* opt_background = "#C3BfB0";
-static char* opt_foreground = "#423638";
-static char* opt_wrong = "#F80009";
+static char* opt_background;
+static char* opt_foreground;
+static char* opt_wrong;
 
 /* need globals for signal handling */
 Display *dpy;
@@ -341,8 +341,11 @@ main(int argc, char** argv) {
 
     /* set default values for command-line arguments */
     opt_passchar = "*";
-    opt_font = "-misc-fixed-medium-r-*--17-120-*-*-*-*-iso8859-1";
+    opt_font = "-*-droid sans-*-*-*-*-20-*-100-100-*-*-iso8859-1";
     opt_username = username;
+    opt_background = "#C3BfB0";
+    opt_foreground = "#423638";
+    opt_wrong = "#F80009";
 
     if (!parse_options(argc, argv))
         exit(EXIT_FAILURE);
@@ -417,24 +420,20 @@ main(int argc, char** argv) {
 
     /* allocate colors */
     {
-        XColor dummy;
         Colormap cmap = DefaultColormap(dpy, screen_num);
         /* background */
         if(!XParseColor(dpy, cmap, opt_background, &background)){
-            fprintf(stderr, "error Can not parse background color: %s\n", opt_background);
-            XAllocNamedColor(dpy, cmap, "black", &background, &dummy);
+            die("error: can not parse background color: %s\n", opt_background);
         }else
             XAllocColor(dpy, cmap, &background);
         /* foreground */
         if(!XParseColor(dpy, cmap, opt_foreground, &foreground)){
-            fprintf(stderr, "error Can not parse foreground color: %s\n", opt_foreground);
-            XAllocNamedColor(dpy, cmap, "white", &foreground, &dummy);
+            die("error: can not parse foreground color: %s\n", opt_foreground);
         }else
             XAllocColor(dpy, cmap, &foreground);
         /* wrong */
         if(!XParseColor(dpy, cmap, opt_wrong, &wrong)){
-            fprintf(stderr, "error Can not parse foreground color for wrong autetification: %s\n", opt_wrong);
-            XAllocNamedColor(dpy, cmap, "orange red", &wrong, &dummy);
+            die("error: can not parse foreground color fora utetification error: %s\n", opt_wrong);
         }else
             XAllocColor(dpy, cmap, &wrong);
 

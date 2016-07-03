@@ -34,6 +34,10 @@ install: csxlock
 	install -Dm4755 csxlock $(DESTDIR)/usr/bin/csxlock
 	install -Dm644 csxlock.pam $(DESTDIR)/etc/pam.d/csxlock
 
+nosuidinstall: csxlock
+	install -Dm755 csxlock $(DESTDIR)/usr/bin/csxlock
+	install -Dm644 csxlock.pam $(DESTDIR)/etc/pam.d/csxlock
+
 remove:
 	rm -f $(DESTDIR)/usr/bin/csxlock
 	rm -f $(DESTDIR)/etc/pam.d/csxlock

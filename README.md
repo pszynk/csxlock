@@ -14,6 +14,9 @@ Features
  - uses PAM
  - sets DPMS timeout to 10 seconds, before exit restores original settings
  - basic RandR support (drawing centered on the primary output)
+ - user colors for background and text
+ - date and time (updated on by keyboard press)
+ - lock tty (SUID needed!)
 
 
 Requirements
@@ -23,6 +26,7 @@ Requirements
  - libXext (X11 extensions library, for DPMS)
  - libXrandr (RandR support)
  - PAM
+ - droid sans (font)
 
 
 Installation
@@ -34,9 +38,16 @@ For manual installation just install dependencies, checkout and make:
 
     git clone git://github.com/lahwaacz/sxlock.git
     cd ./sxlock
-    make
-    ./sxlock
+    make install
+    csxlock
 
+To remove SUID make:
+
+    chmod s-u /sbin/csxlock
+
+Or run install as:
+
+    make nosuidinstall
 
 Running csxlock
 -------------
@@ -48,6 +59,20 @@ Custom settings:
     -f <font description>: modify the font.
     -p <password characters>: modify the characters displayed when the user enters his password. This can be a sequence of characters to create a fake password.
     -u <username>: a user name to be displayed at the lock screen.
+    -b <color>: a background color for lockscreen in hex valie (i.e. "#FF00FF")
+    -o <color>: a text color for lockscreen in hex valie (i.e. "#FF00FF")
+    -w <color>: a text color for autentification error in hex valie (i.e. "#FF00FF")
+
+Default values of csxlock
+-------------------------
+
+Custom colors:
+    background color: "#C3BfB0"
+    text color: "#423638"
+    error text color: "#F80009"
+
+Font:
+    -*-droid sans-*-*-*-*-20-*-100-100-*-*-iso8859-1
 
 Hooking into systemd events
 ---------------------------
@@ -61,7 +86,7 @@ Description=Lock X session using csxlock
 [Service]
 User=<username>
 Environment=DISPLAY=:0
-ExecStart=/usr/bin/sxlock
+ExecStart=/usr/bin/csxlock
 
 [Install]
 WantedBy=sleep.target

@@ -73,7 +73,7 @@ Custom colors:
  - error text color: "#F80009"
 
 Font:
- - -*-droid sans-*-*-*-*-20-*-100-100-*-*-iso8859-1
+ - -\*-droid sans-\*-\*-\*-\*-20-\*-100-100-\*-\*-iso8859-1
 
 Hooking into systemd events
 ---------------------------

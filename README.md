@@ -36,8 +36,8 @@ AUR package will be soon
 
 For manual installation just install dependencies, checkout and make:
 
-    git clone git://github.com/lahwaacz/sxlock.git
-    cd ./sxlock
+    git clone https://github.com/HoskeOwl/csxlock
+    cd ./csxlock
     make install
     csxlock
 
@@ -48,6 +48,7 @@ To remove SUID make:
 Or run install as:
 
     make nosuidinstall
+    csxlock
 
 Running csxlock
 -------------
@@ -67,12 +68,12 @@ Default values of csxlock
 -------------------------
 
 Custom colors:
-    background color: "#C3BfB0"
-    text color: "#423638"
-    error text color: "#F80009"
+ - background color: "#C3BfB0"
+ - text color: "#423638"
+ - error text color: "#F80009"
 
 Font:
-    -*-droid sans-*-*-*-*-20-*-100-100-*-*-iso8859-1
+ - -*-droid sans-*-*-*-*-20-*-100-100-*-*-iso8859-1
 
 Hooking into systemd events
 ---------------------------

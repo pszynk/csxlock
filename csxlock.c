@@ -1,7 +1,8 @@
 /*
  * MIT/X Consortium License
  *
- * © 2013 Jakub Klinkovský <kuba.klinkovsky at gmail dot com>
+ * © 2016 Safronov Kirill <hoskeowl  at  gmail  dot  com>
+ * © 2013-2016 Jakub Klinkovský <kuba.klinkovsky at gmail dot com>
  * © 2010-2011 Ben Ruijl
  * © 2006-2008 Anselm R Garbe <garbeam at gmail dot com>
  *

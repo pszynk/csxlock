@@ -15,7 +15,7 @@ Features
  - sets DPMS timeout to 10 seconds, before exit restores original settings
  - basic RandR support (drawing centered on the primary output)
  - user colors for background and text
- - date and time (updated on by keyboard press)
+ - date and time (updated by keyboard press)
  - lock tty (SUID needed!)
 
 
@@ -32,7 +32,7 @@ Requirements
 Installation
 ------------
 
-AUR package will be soon
+Arch Linux users can install this package from the [AUR](https://aur.archlinux.org/packages/csxlock-git/).
 
 For manual installation just install dependencies, checkout and make:
 
@@ -72,7 +72,7 @@ Custom colors:
  - text color: "#423638"
  - error text color: "#F80009"
 
-Font:
+Custom font:
  - -\*-droid sans-\*-\*-\*-\*-20-\*-100-100-\*-\*-iso8859-1
 
 Hooking into systemd events

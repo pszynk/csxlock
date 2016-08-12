@@ -41,6 +41,7 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/dpms.h>
 #include <X11/extensions/Xrandr.h>
+#include <X11/XKBlib.h> // XkbDescRec, XkbAllocKeyboard, XkbGetNames, XkbSymbolsNameMask, Atom
 #include <security/pam_appl.h>
 
 #include <sys/ioctl.h>
@@ -158,7 +159,7 @@ handle_signal(int sig) {
 }
 
 void
-main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor foreground, XColor wrong) {
+main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor foreground, XColor wrong, char **layoutGroups, int groupSize) {
     XEvent event;
     KeySym ksym;
 
@@ -170,6 +171,7 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
     char datetime[] = "YYYY-MM-DD HH:MM";
     int datelen=strlen(datetime);
     char *format = "%Y-%m-%d %H:%M";
+    char sep[] = " | ";
     time_t t = time(0);
 
     XSync(dpy, False);
@@ -222,18 +224,42 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
         if (event.type == MotionNotify || event.type == KeyPress) {
             sleepmode = False;
             failed = False;
+            char *text;
 
             /* get time */
             t = time(NULL);
             memset(datetime, 0, datelen);
             strftime(datetime, datelen+1, format, localtime(&t));
+
+            /* get layout text */
+            int currentGroup;
+            {
+                XkbStateRec xkbState;
+                XkbGetState(dpy, XkbUseCoreKbd, &xkbState);
+                currentGroup = (int)(xkbState.group);
+            }
+            if (groupSize > currentGroup){
+                size_t txtLen = strlen(datetime) + strlen(sep) + strlen(layoutGroups[currentGroup]) + sizeof(char);
+                text = (char*)malloc(sizeof(char) * txtLen);
+                strcpy(text, datetime);
+                strcat(text, sep);
+                strcat(text, layoutGroups[currentGroup]);
+            }else{
+                text = (char*)malloc(sizeof(char) * strlen(datetime) + sizeof(char));
+                strcpy(text, datetime);
+            }
+
             /* write text */
+            /* font properties */
             int height = ascent + descent;
-            int width = XTextWidth(font, datetime, strlen(datetime));
+            int width = XTextWidth(font, text, strlen(text));
             int x = base_x - width / 2;
             XClearArea(dpy, w, x, base_y - 20 - (height*2), width, height, False);
-            XDrawString(dpy, w, gc, x, base_y - 20 - height, datetime, strlen(datetime));
+            XDrawString(dpy, w, gc, x, base_y - 20 - height, text, strlen(text));
+            free(text);
+
         }
+
 
         if (event.type == KeyPress) {
             char inputChar = 0;
@@ -440,6 +466,29 @@ main(int argc, char** argv) {
 
     }
 
+    /* get layout groups */
+    int tokenCount = 0;
+    char* layoutString = NULL;
+    {
+        XkbDescRec* kbdDescPtr = XkbAllocKeyboard();
+        XkbGetNames(dpy, XkbSymbolsNameMask, kbdDescPtr);
+        Atom symName = kbdDescPtr -> names -> symbols;
+        layoutString = XGetAtomName(dpy, symName);
+        
+        char *tmp = layoutString;
+        while(*tmp != '\0' && *tmp != ':'){
+            if(*tmp == '+')
+                tokenCount ++;
+            tmp++;
+        }
+    }
+    char *layoutGroups[tokenCount];
+    {
+        strtok(layoutString, "+:"); //skip the first token, like 'pc'
+        for(int i=0; i<tokenCount; i++)
+            layoutGroups[i] = strtok(NULL, "+:");
+    }
+
     /* create window */
     {
         XSetWindowAttributes wa;
@@ -523,7 +572,7 @@ main(int argc, char** argv) {
 
 
     /* run main loop */
-    main_loop(w, gc, font, &info, passdisp, opt_username, background, foreground, wrong);
+    main_loop(w, gc, font, &info, passdisp, opt_username, background, foreground, wrong, layoutGroups, tokenCount);
 
     /* enable tty switching */
     if (ioterm >= 0)

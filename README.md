@@ -17,6 +17,7 @@ Features
  - user colors for background and text
  - date and time (updated by keyboard press)
  - lock tty (SUID needed!)
+ - display layout name of keyboard
 
 
 Requirements
@@ -94,3 +95,4 @@ WantedBy=sleep.target
 ```
 
 However, this approach is useful only for single-user systems, because there is no way to know which user is currently logged in. Use [xss-lock](https://bitbucket.org/raymonad/xss-lock) as an alternative for multi-user systems.
+To use xss add a line "exec /usr/bin/xss-lock /usr/bin/csxlock +resetsaver &" to ~/.xinitrc

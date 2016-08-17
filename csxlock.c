@@ -173,6 +173,7 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
     char *format = "%Y-%m-%d %H:%M";
     char sep[] = " | ";
     time_t t = time(0);
+    int line_gap = 10;
 
     XSync(dpy, False);
 
@@ -202,28 +203,23 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
             int x;
             /* draw username and line */
             x = base_x - XTextWidth(font, username, strlen(username)) / 2;
-            XDrawString(dpy, w, gc, x, base_y - 10, username, strlen(username));
+            XDrawString(dpy, w, gc, x, base_y - (line_gap/2) - descent, username, strlen(username));
             XDrawLine(dpy, w, gc, line_x_left, base_y, line_x_right, base_y);
 
             /* clear old passdisp */
-            XClearArea(dpy, w, info->output_x, base_y + 20, info->output_width, ascent + descent, False);
+            XClearArea(dpy, w, info->output_x, base_y + line_gap, info->output_width, ascent + descent, False);
 
             /* draw new passdisp or 'auth failed' */
             if (failed) {
                 x = base_x - XTextWidth(font, "authentication failed", 21) / 2;
                 XSetForeground(dpy, gc, wrong.pixel);
-                XDrawString(dpy, w, gc, x, base_y + ascent + 20, "authentication failed", 21);
+                XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, "authentication failed", 21);
                 XSetForeground(dpy, gc, foreground.pixel);
             } else {
                 x = base_x - XTextWidth(font, passdisp, len) / 2;
-                XDrawString(dpy, w, gc, x, base_y + ascent + 20, passdisp, len);
+                XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, passdisp, len);
             }
-        }
 
-        /* draw date and time*/
-        if (event.type == MotionNotify || event.type == KeyPress) {
-            sleepmode = False;
-            failed = False;
             char *text;
 
             /* get time */
@@ -231,7 +227,7 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
             memset(datetime, 0, datelen);
             strftime(datetime, datelen+1, format, localtime(&t));
 
-            /* get layout text */
+            /* get layout name */
             int currentGroup;
             {
                 XkbStateRec xkbState;
@@ -251,15 +247,37 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
 
             /* write text */
             /* font properties */
+            // http://filonenko-mikhail.github.io/clx-truetype/ttf-metrics.png
             int height = ascent + descent;
             int width = XTextWidth(font, text, strlen(text));
-            int x = base_x - width / 2;
-            XClearArea(dpy, w, x, base_y - 20 - (height*2), width, height, False);
-            XDrawString(dpy, w, gc, x, base_y - 20 - height, text, strlen(text));
+            x = base_x - width / 2;
+            // base_y the middle of the screen. height*2 because
+            // we pass two lines: username and line of date (get left up of corner of text)
+            // line+gap*1.5: 0.5 line gap between username and line and 1 line gap between date and username
+            XClearArea(dpy, w, x, base_y - (line_gap*1.5) - (height*2), width, height, False);
+            XDrawString(dpy, w, gc, x, base_y - (line_gap*1.5) - height - descent, text, strlen(text));
             free(text);
 
+            /* Check capslock state */
+            unsigned int state;
+            char caps[] = "Caps lock is on";
+            size_t capsLen = strlen(caps);
+            XkbGetIndicatorState (dpy, XkbUseCoreKbd, &state);
+            width = XTextWidth(font, caps, capsLen);
+            x = base_x - width / 2;
+            XClearArea(dpy, w, x, base_y + (line_gap*2) + height, width, height, False);
+            if (state & 1){
+                XSetForeground(dpy, gc, wrong.pixel);
+                XDrawString(dpy, w, gc, x, base_y + (line_gap*2) + height + ascent, caps, capsLen);
+                XSetForeground(dpy, gc, foreground.pixel);
+            }
         }
 
+        /* draw date, time, keyboard layout, capslock state */
+        if (event.type == MotionNotify || event.type == KeyPress) {
+            sleepmode = False;
+            failed = False;
+        }
 
         if (event.type == KeyPress) {
             char inputChar = 0;

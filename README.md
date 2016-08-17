@@ -18,6 +18,7 @@ Features
  - date and time (updated by keyboard press)
  - lock tty (SUID needed!)
  - display layout name of keyboard
+ - will show warning about "Caps Lock" mode
 
 
 Requirements

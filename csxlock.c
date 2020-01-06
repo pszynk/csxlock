@@ -78,6 +78,8 @@ static char* opt_passchar;
 static char* opt_background;
 static char* opt_foreground;
 static char* opt_wrong;
+static Bool  opt_hidelength;
+static Bool  opt_usedpms;
 
 /* need globals for signal handling */
 Display *dpy;
@@ -159,7 +161,7 @@ handle_signal(int sig) {
 }
 
 void
-main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor foreground, XColor wrong, char **layoutGroups, int groupSize) {
+main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor foreground, XColor wrong, Bool hidelength, char **layoutGroups, int groupSize) {
     XEvent event;
     KeySym ksym;
 
@@ -216,8 +218,11 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
                 XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, "authentication failed", 21);
                 XSetForeground(dpy, gc, foreground.pixel);
             } else {
+                int lendisp = len;
+                if (hidelength && len > 0)
+                    lendisp += (passdisp[len] * len) % 5;
                 x = base_x - XTextWidth(font, passdisp, len) / 2;
-                XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, passdisp, len);
+                XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, passdisp, lendisp % 256);
             }
 
             char *text;
@@ -322,6 +327,8 @@ parse_options(int argc, char** argv)
         { "help",           no_argument,       0, 'h' },
         { "passchar",       required_argument, 0, 'p' },
         { "username",       required_argument, 0, 'u' },
+        { "hidelength",     no_argument,       0, 'l' },
+        { "nodpms",         no_argument,       0, 'd' },
         { "version",        no_argument,       0, 'v' },
         { "background",        no_argument,       0, 'b' },
         { "foreground",        no_argument,       0, 'o' },
@@ -330,7 +337,7 @@ parse_options(int argc, char** argv)
     };
 
     for (;;) {
-        int opt = getopt_long(argc, argv, "f:hp:u:vb:o:w:", opts, NULL);
+        int opt = getopt_long(argc, argv, "f:hp:u:vldb:o:w:", opts, NULL);
         if (opt == -1)
             break;
 
@@ -339,13 +346,32 @@ parse_options(int argc, char** argv)
                 opt_font = optarg;
                 break;
             case 'h':
-                die("usage: "PROGNAME" [-hv] [-p passchars] [-f fontname] [-u username] [-b hexcolor] [-o hexcolor] [-w hexcolor]\n");
+                die("usage: "PROGNAME" [-hvd] [-p passchars] [-f fontname] [-u username] [-b hexcolor] [-o hexcolor] [-w hexcolor]\n"
+                    "   -h: show this help page and exit\n"
+                    "   -v: show version info and exit\n"
+                    "   -l: derange the password length indicator\n"
+                    "   -d: do not handle DPMS\n"
+                    "   -p passchars: characters used to obfuscate the password\n"
+                    "   -f font: X logical font description\n"
+                    "   -u username: user name to show\n"
+                );
                 break;
             case 'p':
-                opt_passchar = optarg;
+                if(strlen(optarg) >= 1) {
+                    opt_passchar = optarg;
+                }
+                else {
+                    fprintf(stderr, "Warning: -p must be 1 character at least, using the default.\n");
+                }
                 break;
             case 'u':
                 opt_username = optarg;
+                break;
+            case 'l':
+                opt_hidelength = True;
+                break;
+            case 'd':
+                opt_usedpms = False;
                 break;
             case 'v':
                 die(PROGNAME"-"VERSION", © 2013 Jakub Klinkovský\n");
@@ -391,6 +417,8 @@ main(int argc, char** argv) {
     opt_background = "#C3BfB0";
     opt_foreground = "#423638";
     opt_wrong = "#F80009";
+    opt_hidelength = False;
+    opt_usedpms = True;
 
     if (!parse_options(argc, argv))
         exit(EXIT_FAILURE);
@@ -443,10 +471,11 @@ main(int argc, char** argv) {
         int i = 0;
         while (output_info->connection != RR_Connected || output_info->crtc == 0) {
             XRRFreeOutputInfo(output_info);
-            output_info = XRRGetOutputInfo(dpy, screen, screen->outputs[i++]);
+            output_info = XRRGetOutputInfo(dpy, screen, screen->outputs[i]);
             fprintf(stderr, "Warning: no primary output detected, trying %s.\n", output_info->name);
             if (i == screen->noutput)
                 die("error: no connected output detected.\n");
+            i++;
         }
 
         crtc_info = XRRGetCrtcInfo (dpy, screen, output_info->crtc);
@@ -565,7 +594,7 @@ main(int argc, char** argv) {
         die("Could not lock page in memory, check RLIMIT_MEMLOCK\n");
 
     /* handle dpms */
-    using_dpms = DPMSCapable(dpy);
+    using_dpms = opt_usedpms && DPMSCapable(dpy);
     if (using_dpms) {
         /* save dpms timeouts to restore on exit */
         DPMSGetTimeouts(dpy, &dpms_original.standby, &dpms_original.suspend, &dpms_original.off);
@@ -590,7 +619,7 @@ main(int argc, char** argv) {
 
 
     /* run main loop */
-    main_loop(w, gc, font, &info, passdisp, opt_username, background, foreground, wrong, layoutGroups, tokenCount);
+    main_loop(w, gc, font, &info, passdisp, opt_username, background, foreground, wrong, opt_hidelength, layoutGroups, tokenCount);
 
     /* enable tty switching */
     if (ioterm >= 0)

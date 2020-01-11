@@ -4,7 +4,7 @@ csxlock - simple X screen locker with customized color
 Simple screen locker utility for X, fork of sxlock which is based on sflock, which is based on slock.
 Warning: suid needed to lock console! SUID can be disabled (tty locking will not be working).
 
-Thanks to Jakub Klinkovský for pure code!
+Thanks to Jakub Klinkovský and Safronov Kirll for pure code!
 
 
 Features
@@ -28,17 +28,19 @@ Requirements
  - libXext (X11 extensions library, for DPMS)
  - libXrandr (RandR support)
  - PAM
- - droid sans (font)
+ - terminus font (optional)
 
 
 Installation
 ------------
 
-Arch Linux users can install this package from the [AUR](https://aur.archlinux.org/packages/csxlock-git/).
+Arch Linux users can install this package the with provided PKGBUILD file.
+Package on [AUR](https://aur.archlinux.org/packages/csxlock-git/) is for
+[HoskeOwl.csxlock][https://github.com/HoskeOwl/csxlock].
 
 For manual installation just install dependencies, checkout and make:
 
-    git clone https://github.com/HoskeOwl/csxlock
+    git clone https://github.com/pszynk/csxlock
     cd ./csxlock
     make install
     csxlock
@@ -57,30 +59,49 @@ Running csxlock
 
 Simply invoking the csxlock command starts the display locker with default settings.
 
-Custom settings:
+Custom settings (`csxlock -h`):
 
-    -f <font description>: modify the font.
-    -p <password characters>: modify the characters displayed when the user enters his password. This can be a sequence of characters to create a fake password.
-    -u <username>: a user name to be displayed at the lock screen.
-    -b <color>: a background color for lockscreen in hex valie (i.e. "#FF00FF")
-    -o <color>: a text color for lockscreen in hex valie (i.e. "#FF00FF")
-    -w <color>: a text color for autentification error in hex valie (i.e. "#FF00FF")
+csxlock: usage: csxlock [OPTS]...
+Simple X screenlocker
 
+    Mandatory arguments to long options are mandatory for short options too.
+       -h, --help              show this help page and exit
+       -v, --version           show version info and exit
+       -d, --nodpms            do not handle DPMS
+       -l, --hidelength        derange the password length indicator
+       -u, --username=USER     user name to be displayed at the lockscreen
+                                 (default: getenv(USER))
+       -f, --font=XFONTDESC    use this font (expects X logical font description)
+                                 (default: "-xos4-terminus-bold-r-normal--16-*")
+       -p, --passchar=C        characters used to obfuscate the password
+                                 (default: '*')
+           --background-color=HEXCOLOR
+                               background color for lockscreen in hex value
+                                 (default: "#C3BfB0")
+           --text-color=HEXCOLOR
+                               text color for lockscreen in hex value
+                                 (default: "#423638")
+           --errmsg-color=HEXCOLOR
+                               message color for autentification error in hex value
+                             (default: "#F80009")
+    
 Default values of csxlock
 -------------------------
 
 Custom colors:
- - background color: "#C3BfB0"
- - text color: "#423638"
- - error text color: "#F80009"
+ - background color: `#C3BfB0`
+ - text color: `#423638`
+ - error message color: `#F80009`
 
 Custom font:
- - -\*-droid sans-\*-\*-\*-\*-20-\*-100-100-\*-\*-iso8859-1
+ - `-xos4-terminus-bold-r-normal--16-*` (only bitmap fonts look presentable with X font protocol)
 
 Hooking into systemd events
 ---------------------------
 
-When using [systemd](http://freedesktop.org/wiki/Software/systemd/), you can use the following service (create `/etc/systemd/system/csxlock.service`) to let the system lock your X session on hibernation or suspend:
+When using [systemd](http://freedesktop.org/wiki/Software/systemd/), you can use
+the following service (create `/etc/systemd/system/csxlock.service`) to let the
+system lock your X session on hibernation or suspend:
 
 ```ini
 [Unit]
@@ -96,5 +117,8 @@ ExecStart=/usr/bin/csxlock
 WantedBy=sleep.target
 ```
 
-However, this approach is useful only for single-user systems, because there is no way to know which user is currently logged in. Use [xss-lock](https://bitbucket.org/raymonad/xss-lock) as an alternative for multi-user systems.
+However, this approach is useful only for single-user systems, because there is
+no way to know which user is currently logged in.
+Use [xss-lock](https://bitbucket.org/raymonad/xss-lock) as an alternative for
+multi-user systems.
 To use xss add a line "exec /usr/bin/xss-lock /usr/bin/csxlock +resetsaver &" to ~/.xinitrc

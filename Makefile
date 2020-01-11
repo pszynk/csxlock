@@ -8,7 +8,7 @@
 # © 2006-2008 Anselm R. Garbe, Sander van Dijk
 
 NAME = csxlock
-VERSION = 1.0
+VERSION = 1.1
 
 CC := $(CC) -std=c99
 

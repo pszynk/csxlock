@@ -1,7 +1,8 @@
 /*
  * MIT/X Consortium License
  *
- * © 2016 Safronov Kirill <hoskeowl  at  gmail  dot  com>
+ * © 2020 Paweł Szynkiewicz <pszynk  at  gmail  dot  com>
+ * © 2016-2020 Safronov Kirill <hoskeowl  at  gmail  dot  com>
  * © 2013-2016 Jakub Klinkovský <kuba.klinkovsky at gmail dot com>
  * © 2010-2011 Ben Ruijl
  * © 2006-2008 Anselm R Garbe <garbeam at gmail dot com>
@@ -56,6 +57,28 @@
     #define UNUSED(x) UNUSED_ ## x
 #endif
 
+#ifndef VERSION
+    #define VERSION "develop"
+#endif
+
+#ifndef PROGNAME
+    #define PROGNAME "csxlock-dev"
+#endif
+
+
+/* used colors keys (for command-line) */
+/* looks stupid I know, but how the hell getopts_long works? */
+#define BACKGROUND_COLOR_KEY (1 << 8)
+#define TEXT_COLOR_KEY       ((1 << 8) + 1)
+#define ERRMSG_COLOR_KEY     ((1 << 8) + 2)
+
+/* default command-line argument values */
+#define DEF_FONT              "-xos4-terminus-bold-r-normal--16-*"
+#define DEF_PASSCHAR          "*"
+#define DEF_BACKGROUND_COLOR  "#C3BfB0"
+#define DEF_TEXT_COLOR        "#423638"
+#define DEF_ERRMSG_COLOR      "#F80009"
+
 typedef struct Dpms {
     BOOL state;
     CARD16 level;  // why?
@@ -75,9 +98,9 @@ static int conv_callback(int num_msgs, const struct pam_message **msg, struct pa
 static char* opt_font;
 static char* opt_username;
 static char* opt_passchar;
-static char* opt_background;
-static char* opt_foreground;
-static char* opt_wrong;
+static char* opt_background_color;
+static char* opt_text_color;
+static char* opt_errmsg_color;
 static Bool  opt_hidelength;
 static Bool  opt_usedpms;
 
@@ -161,7 +184,7 @@ handle_signal(int sig) {
 }
 
 void
-main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor foreground, XColor wrong, Bool hidelength, char **layoutGroups, int groupSize) {
+main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char passdisp[256], char* username, XColor UNUSED(background), XColor text_color, XColor errmsg_color, Bool hidelength, char **layoutGroups, int groupSize) {
     XEvent event;
     KeySym ksym;
 
@@ -175,7 +198,7 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
     char *format = "%Y-%m-%d %H:%M";
     char sep[] = " | ";
     time_t t = time(0);
-    int line_gap = 10;
+    int line_gap = 20;
 
     XSync(dpy, False);
 
@@ -214,14 +237,14 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
             /* draw new passdisp or 'auth failed' */
             if (failed) {
                 x = base_x - XTextWidth(font, "authentication failed", 21) / 2;
-                XSetForeground(dpy, gc, wrong.pixel);
+                XSetForeground(dpy, gc, errmsg_color.pixel);
                 XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, "authentication failed", 21);
-                XSetForeground(dpy, gc, foreground.pixel);
+                XSetForeground(dpy, gc, text_color.pixel);
             } else {
                 int lendisp = len;
                 if (hidelength && len > 0)
                     lendisp += (passdisp[len] * len) % 5;
-                x = base_x - XTextWidth(font, passdisp, len) / 2;
+                x = base_x - XTextWidth(font, passdisp, lendisp) / 2;
                 XDrawString(dpy, w, gc, x, base_y + ascent + line_gap, passdisp, lendisp % 256);
             }
 
@@ -272,9 +295,9 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
             x = base_x - width / 2;
             XClearArea(dpy, w, x, base_y + (line_gap*2) + height, width, height, False);
             if (state & 1){
-                XSetForeground(dpy, gc, wrong.pixel);
+                XSetForeground(dpy, gc, errmsg_color.pixel);
                 XDrawString(dpy, w, gc, x, base_y + (line_gap*2) + height + ascent, caps, capsLen);
-                XSetForeground(dpy, gc, foreground.pixel);
+                XSetForeground(dpy, gc, text_color.pixel);
             }
         }
 
@@ -319,43 +342,62 @@ main_loop(Window w, GC gc, XFontStruct* font, WindowPositionInfo* info, char pas
     }
 }
 
+
 Bool
 parse_options(int argc, char** argv)
 {
     static struct option opts[] = {
-        { "font",           required_argument, 0, 'f' },
-        { "help",           no_argument,       0, 'h' },
-        { "passchar",       required_argument, 0, 'p' },
-        { "username",       required_argument, 0, 'u' },
-        { "hidelength",     no_argument,       0, 'l' },
-        { "nodpms",         no_argument,       0, 'd' },
-        { "version",        no_argument,       0, 'v' },
-        { "background",        no_argument,       0, 'b' },
-        { "foreground",        no_argument,       0, 'o' },
-        { "wrong",        no_argument,       0, 'w' },
+        { "help",             no_argument,       0, 'h' },
+        { "version",          no_argument,       0, 'v' },
+        { "nodpms",           no_argument,       0, 'd' },
+        { "hidelength",       no_argument,       0, 'l' },
+        { "font",             required_argument, 0, 'f' },
+        { "passchar",         required_argument, 0, 'p' },
+        { "username",         required_argument, 0, 'u' },
+        { "background-color", required_argument, 0, BACKGROUND_COLOR_KEY },
+        { "text-color",       required_argument, 0, TEXT_COLOR_KEY },
+        { "errmsg-color",     required_argument, 0, ERRMSG_COLOR_KEY },
         { 0, 0, 0, 0 },
     };
 
     for (;;) {
-        int opt = getopt_long(argc, argv, "f:hp:u:vldb:o:w:", opts, NULL);
+        int opt = getopt_long(argc, argv, "hvdlf:p:u:", opts, NULL);
         if (opt == -1)
             break;
 
         switch (opt) {
-            case 'f':
-                opt_font = optarg;
-                break;
             case 'h':
-                die("usage: "PROGNAME" [-hvd] [-p passchars] [-f fontname] [-u username] [-b hexcolor] [-o hexcolor] [-w hexcolor]\n"
-                    "   -h: show this help page and exit\n"
-                    "   -v: show version info and exit\n"
-                    "   -l: derange the password length indicator\n"
-                    "   -d: do not handle DPMS\n"
-                    "   -p passchars: characters used to obfuscate the password\n"
-                    "   -f font: X logical font description\n"
-                    "   -u username: user name to show\n"
+                die("usage: "PROGNAME" [OPTS]...\n"
+                    "Simple X screenlocker\n"
+                    "\n"
+                    "Mandatory arguments to long options are mandatory for short options too.\n"
+                    "   -h, --help              show this help page and exit\n"
+                    "   -v, --version           show version info and exit\n"
+                    "   -d, --nodpms            do not handle DPMS\n"
+                    "   -l, --hidelength        derange the password length indicator\n"
+                    "   -u, --username=USER     user name to be displayed at the lockscreen\n"
+                    "                             (default: getenv(USER))\n"
+                    "   -f, --font=XFONTDESC    use this font (expects X logical font description)\n"
+                    "                             (default: \""DEF_FONT"\")\n"
+                    "   -p, --passchar=C        characters used to obfuscate the password\n"
+                    "                             (default: '"DEF_PASSCHAR"')\n"
+                    "       --background-color=HEXCOLOR\n"
+                    "                           background color for lockscreen in hex value\n"
+                    "                             (default: \""DEF_BACKGROUND_COLOR"\")\n"
+                    "       --text-color=HEXCOLOR\n"
+                    "                           text color for lockscreen in hex value\n"
+                    "                             (default: \""DEF_TEXT_COLOR"\")\n"
+                    "       --errmsg-color=HEXCOLOR\n"
+                    "                           message color for autentification error in hex value\n"
+                    "                             (default: \""DEF_ERRMSG_COLOR"\")\n"
                 );
                 break;
+            case 'v':
+              die(PROGNAME "-" VERSION ", © 2020 Paweł Szynkiewicz\n");
+              break;
+            case 'f':
+              opt_font = optarg;
+              break;
             case 'p':
                 if(strlen(optarg) >= 1) {
                     opt_passchar = optarg;
@@ -367,23 +409,20 @@ parse_options(int argc, char** argv)
             case 'u':
                 opt_username = optarg;
                 break;
+            case 'd':
+              opt_usedpms = False;
+              break;
             case 'l':
                 opt_hidelength = True;
                 break;
-            case 'd':
-                opt_usedpms = False;
+            case BACKGROUND_COLOR_KEY:
+                opt_background_color = optarg;
                 break;
-            case 'v':
-                die(PROGNAME"-"VERSION", © 2013 Jakub Klinkovský\n");
+            case TEXT_COLOR_KEY:
+                opt_text_color = optarg;
                 break;
-            case 'b':
-                opt_background = optarg;
-                break;
-            case 'o':
-                opt_foreground = optarg;
-                break;
-            case 'w':
-                opt_wrong = optarg;
+            case ERRMSG_COLOR_KEY:
+                opt_errmsg_color = optarg;
                 break;
             default:
                 return False;
@@ -401,7 +440,7 @@ main(int argc, char** argv) {
 
     Cursor invisible;
     Window root, w;
-    XColor background, foreground, wrong;
+    XColor background, text_color, errmsg_color;
     XFontStruct* font;
     GC gc;
 
@@ -411,14 +450,16 @@ main(int argc, char** argv) {
         die("USER environment variable not set, please set it.\n");
 
     /* set default values for command-line arguments */
-    opt_passchar = "*";
-    opt_font = "-*-droid sans-*-*-*-*-20-*-100-100-*-*-iso8859-1";
-    opt_username = username;
-    opt_background = "#C3BfB0";
-    opt_foreground = "#423638";
-    opt_wrong = "#F80009";
     opt_hidelength = False;
     opt_usedpms = True;
+
+    opt_username = username;
+    opt_font = DEF_FONT;
+    opt_passchar = DEF_PASSCHAR;
+
+    opt_background_color = DEF_BACKGROUND_COLOR;
+    opt_text_color = DEF_TEXT_COLOR;
+    opt_errmsg_color = DEF_ERRMSG_COLOR;
 
     if (!parse_options(argc, argv))
         exit(EXIT_FAILURE);
@@ -496,20 +537,20 @@ main(int argc, char** argv) {
     {
         Colormap cmap = DefaultColormap(dpy, screen_num);
         /* background */
-        if(!XParseColor(dpy, cmap, opt_background, &background)){
-            die("error: can not parse background color: %s\n", opt_background);
+        if(!XParseColor(dpy, cmap, opt_background_color, &background)){
+            die("error: can not parse background color: %s\n", opt_background_color);
         }else
             XAllocColor(dpy, cmap, &background);
-        /* foreground */
-        if(!XParseColor(dpy, cmap, opt_foreground, &foreground)){
-            die("error: can not parse foreground color: %s\n", opt_foreground);
+        /* text_color */
+        if(!XParseColor(dpy, cmap, opt_text_color, &text_color)){
+            die("error: can not parse text color: %s\n", opt_text_color);
         }else
-            XAllocColor(dpy, cmap, &foreground);
-        /* wrong */
-        if(!XParseColor(dpy, cmap, opt_wrong, &wrong)){
-            die("error: can not parse foreground color fora utetification error: %s\n", opt_wrong);
+            XAllocColor(dpy, cmap, &text_color);
+        /* errmsg_color */
+        if(!XParseColor(dpy, cmap, opt_errmsg_color, &errmsg_color)){
+            die("error: can not parse color for unauthenticated error message: %s\n", opt_errmsg_color);
         }else
-            XAllocColor(dpy, cmap, &wrong);
+            XAllocColor(dpy, cmap, &errmsg_color);
 
     }
 
@@ -521,7 +562,7 @@ main(int argc, char** argv) {
         XkbGetNames(dpy, XkbSymbolsNameMask, kbdDescPtr);
         Atom symName = kbdDescPtr -> names -> symbols;
         layoutString = XGetAtomName(dpy, symName);
-        
+
         char *tmp = layoutString;
         while(*tmp != '\0' && *tmp != ':'){
             if(*tmp == '+')
@@ -561,7 +602,7 @@ main(int argc, char** argv) {
         XGCValues values;
         gc = XCreateGC(dpy, w, (unsigned long)0, &values);
         XSetFont(dpy, gc, font->fid);
-        XSetForeground(dpy, gc, foreground.pixel);
+        XSetForeground(dpy, gc, text_color.pixel);
     }
 
     /* grab pointer and keyboard */
@@ -619,7 +660,7 @@ main(int argc, char** argv) {
 
 
     /* run main loop */
-    main_loop(w, gc, font, &info, passdisp, opt_username, background, foreground, wrong, opt_hidelength, layoutGroups, tokenCount);
+    main_loop(w, gc, font, &info, passdisp, opt_username, background, text_color, errmsg_color, opt_hidelength, layoutGroups, tokenCount);
 
     /* enable tty switching */
     if (ioterm >= 0)

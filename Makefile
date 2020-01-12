@@ -7,17 +7,17 @@
 # Based on slock
 # © 2006-2008 Anselm R. Garbe, Sander van Dijk
 
-NAME = csxlock
-VERSION = 1.1
+NAME := csxlock
+VERSION := $(shell ./version.sh)
 
 CC := $(CC) -std=c99
 
-base_CFLAGS = -Wall -Wextra -pedantic -O2
-base_LIBS = -lpam
+base_CFLAGS := -Wall -Wextra -pedantic -O2
+base_LIBS := -lpam
 
-pkgs = x11 xext xrandr
-pkgs_CFLAGS = $(shell pkg-config --cflags $(pkgs))
-pkgs_LIBS = $(shell pkg-config --libs $(pkgs))
+pkgs := x11 xext xrandr
+pkgs_CFLAGS := $(shell pkg-config --cflags $(pkgs))
+pkgs_LIBS := $(shell pkg-config --libs $(pkgs))
 
 CPPFLAGS += -DPROGNAME=\"${NAME}\" -DVERSION=\"${VERSION}\" -D_XOPEN_SOURCE=500
 CFLAGS := $(base_CFLAGS) $(pkgs_CFLAGS) $(CFLAGS)

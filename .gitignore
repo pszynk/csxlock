@@ -1,2 +1,3 @@
-sxlock
+csxlock
 *.o
+.dir-locals.el

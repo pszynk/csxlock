@@ -1,4 +1,4 @@
-# ccsxlock - simple colored X screen locker
+# csxlock - simple colored X screen locker
 # © 2016 Safronov Kirill
 # Based on csxlock
 # © 2013-2016 Jakub Klinkovský
@@ -12,7 +12,7 @@ VERSION = 1.1
 
 CC := $(CC) -std=c99
 
-base_CFLAGS = -Wall -Wextra -pedantic -O2 -g
+base_CFLAGS = -Wall -Wextra -pedantic -O2
 base_LIBS = -lpam
 
 pkgs = x11 xext xrandr
@@ -41,3 +41,5 @@ nosuidinstall: csxlock
 remove:
 	rm -f $(DESTDIR)/usr/bin/csxlock
 	rm -f $(DESTDIR)/etc/pam.d/csxlock
+
+.PHONY: all clean install nosuidinstall remove
